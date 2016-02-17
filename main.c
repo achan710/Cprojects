@@ -8,6 +8,16 @@
  ============================================================================
  */
 
+/*
+note: to set tabs in vim 
+// set shiftwidth=4
+// set tabstop=4
+// set expandtab
+
+// to show line numbers
+// set number
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "assert.h"
@@ -15,7 +25,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define EX4_1 FALSE
+#define EX4_1 TRUE
 #define EX4_3 FALSE
 
 int strindex(char s[], char t[]);
@@ -23,12 +33,21 @@ int mystrindex(char s[], char t[]);
 
 int main(void)
 {
+#if (FALSE)
+    // code to test my strindex
     int result;
     result = mystrindex("abceeeeabc", "eab");
     printf("result = %d\n", result);
     assert ( 6 == result);
+#endif
+
 #if (EX4_1 == TRUE)
-    assert( 6 == strindex("abceeeeabc", "eab"));     // "ca" located at index 2
+    assert( 2 == strindex("eex", "x"));     // 1 letter in s
+    assert( 5 == strindex("eexeex", "x"));     // 2 letters in s
+    assert( 4 == strindex("eexeex", "e"));     // last e
+    assert( 3 == strindex("eexeex", "ee"));     // last group of e
+    assert( 0 == strindex("aexeex", "a"));     // first letter in s
+    assert( 1 == strindex("ebdxebex", "bd"));     // 2 letters in t
 #endif
 
 #if (EX4_3 == TRUE)
@@ -36,7 +55,7 @@ int main(void)
 #endif
 
 	// No errors encountered
-	printf("Test Complete. Great work!");
+	printf("Test Complete. Great work!\n");
 	return EXIT_SUCCESS;
 }
 
@@ -44,17 +63,27 @@ int main(void)
 /*
  * Exercise 4-1. Write the function strindex(s,t) which returns the position of the rightmost
  * occurrence of t in s, or -1 if there is none.
+ *
+ * Algoritm:
+ * 1. instead of returning the index right away, save it to variable p
+ * 2. Continue walking along s and look for matches. Update p as necessary
+ * 3. return the last known p
  */
 int strindex(char s[], char t[])
 {
     int i, j, k;
+    int p = -1;  // position
+
     for (i = 0; s[i] != '\0'; i++) {
         for (j=i, k=0; t[k]!='\0' && s[j]==t[k]; j++, k++)
             ;
         if (k > 0 && t[k] == '\0')
-            return i;
+        {
+            p = i;
+        }
     }
-    return -1;
+    
+    return p;
 }
 
 /*
