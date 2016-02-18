@@ -71,7 +71,6 @@ int main(void)
 {
     printf("Test %d starting...\n", REV);
 
-    // test print
     // test print - prints 50 and 100
     push(50.0);
     push(100);
