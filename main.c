@@ -19,39 +19,98 @@ note: to set tabs in vim
 */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h> /*for atof() */
 #include "assert.h"
+#include <ctype.h>
+#include <math.h>   /* for fmod(x, y) */
+
+// Preprocessor Constants
+#define REV 1 //code revision indicator
 
 #define TRUE 1
 #define FALSE 0
 
-#define EX4_1 TRUE
+#define EX4_1 FALSE
 #define EX4_3 FALSE
+#define EX4_4 TRUE
 
-int strindex(char s[], char t[]);
-int mystrindex(char s[], char t[]);
+// Problem Constants
+
+#define MAXOP 100 /* max size of operand or operator */
+#define NUMBER '0' /* signal that a number was found */
+#define MAXVAL 100  /* maximum depth of val stack */
+#define BUFSIZE 100
+
+// Function Declarations
+
+void push (double f); /* Ex 4.3 */
+double pop(void);
+int getop(char []);
+int getch(void);
+void ungetch(int);
+
+/* Ex 4-4 */
+void clear(void);
+void swap(void);
+void print(void);
+void duplicate(void);
+
+#if (EX4_3)
+int polish_calc();
+#endif
+
+// Global Variables
+
+int sp = 0; /* next free stack position */
+double val[MAXVAL]; /* value stack */
+char buf[BUFSIZE]; /* buffer for ungetch */
+int bufp = 0; /* next free position in buf */
+
 
 int main(void)
 {
-#if (FALSE)
-    // code to test my strindex
-    int result;
-    result = mystrindex("abceeeeabc", "eab");
-    printf("result = %d\n", result);
-    assert ( 6 == result);
-#endif
+    printf("Test %d starting...\n", REV);
 
-#if (EX4_1 == TRUE)
-    assert( 2 == strindex("eex", "x"));     // 1 letter in s
-    assert( 5 == strindex("eexeex", "x"));     // 2 letters in s
-    assert( 4 == strindex("eexeex", "e"));     // last e
-    assert( 3 == strindex("eexeex", "ee"));     // last group of e
-    assert( 0 == strindex("aexeex", "a"));     // first letter in s
-    assert( 1 == strindex("ebdxebex", "bd"));     // 2 letters in t
-#endif
+    // test print - prints 50 and 100
+    push(50.0);
+    push(100);
+    print();
+
+
+    // test swap with exactly 2 items - prints 100 50
+    printf("test swap 1\n");
+    swap();
+    print();
+
+
+    // test swap with more than 2 items - only top 2 items should swap (eg 50, 25)
+    printf("test swap 2\n");
+    push(25);
+    swap();
+    print();
+
+
+    // test duplicate - should repeat the values in stack (e.g. 100 25 50 100 25 50)
+    printf("dup\n");
+    duplicate();
+    print();
+
+    // test clear - stack should be empty
+    printf("clear\n");
+    clear();
+    pop();
+
+
+
 
 #if (EX4_3 == TRUE)
-	printf("!!!Hello World!!!"); /* prints !!!Hello World!!! */
+
+    /*
+     * Test cases
+     * 6 5 %  --> 1
+     * 51 50 % --> 1
+     */
+    polish_calc();
 #endif
 
 	// No errors encountered
@@ -59,93 +118,185 @@ int main(void)
 	return EXIT_SUCCESS;
 }
 
-
+#if (EX4_3 == TRUE)
 /*
- * Exercise 4-1. Write the function strindex(s,t) which returns the position of the rightmost
- * occurrence of t in s, or -1 if there is none.
- *
- * Algoritm:
- * 1. instead of returning the index right away, save it to variable p
- * 2. Continue walking along s and look for matches. Update p as necessary
- * 3. return the last known p
+ * Exercise 4-3. Given the basic framework, it's straightforward 
+ * to extend the calculator. Add the modulus (%) operator and 
+ * provisions for negative numbers. c Polish calculator.
  */
-int strindex(char s[], char t[])
+int polish_calc()
 {
-    int i, j, k;
-    int p = -1;  // position
-
-    for (i = 0; s[i] != '\0'; i++) {
-        for (j=i, k=0; t[k]!='\0' && s[j]==t[k]; j++, k++)
-            ;
-        if (k > 0 && t[k] == '\0')
-        {
-            p = i;
+    int type;
+    double op2;
+    char s[MAXOP];
+    while ((type = getop(s)) != EOF) {
+        switch (type) {
+            case NUMBER:
+                push(atof(s));
+                break;
+            case '+':
+                push(pop() + pop());
+                break;
+            case '*':
+                push(pop() * pop());
+                break;
+            case '-':
+                op2 = pop();
+                push(pop() - op2);
+                break;
+            case '/':
+                op2 = pop();
+                if (op2 != 0.0)
+                    push(pop() / op2);
+                else
+                    printf("error: zero divisor\n");
+                break;
+            case '%':
+                op2 = pop();    /* added mod functionality */
+                push(fmod(pop(), op2));
+                break;
+            case '\n':
+                printf("\t%.8g\n", pop());
+                break;
+            default:
+                printf("error: unknown command %s\n", s);
+                break;
         }
     }
-    
-    return p;
+    return 0;
 }
+#endif
 
 /*
- * Implemented my own strindex function.
+ * Exercise 4-4. Add the commands to print the top elements of the stack without popping, to
+duplicate it, and to swap the top two elements. Add a command to clear the stack.
+ */
+
+/* clear : clear values in stack */
+void clear(void)
+{
+    /* set stack index to 0*/
+    sp = 0;
+}
+
+/* print: prints the stack*/
+void print(void)
+{
+    int i;
+
+    /* print all values up to sp */
+    for (i = 0; i < sp; i++)
+    {
+        printf("%.8g\n", val[i]);
+    }
+}
+
+/* duplicate: duplicate the stack
  *
  * Algorithm:
- * 1. Loop all characters in s.
- * 2. Loop all characters in t against substring of s.
- * 3. once end of t is reached, indicates all characters match so return the index of the substring starting point
+ * 1. check that there is enough room in stack (at least double the current size)
+ * 2. save off the last index offset
+ * 3. loop up to the last index and copy the 1st item location of sp
  */
-int mystrindex(char s[], char t[])
+void duplicate(void)
 {
-    int sidx, tidx, subidx;
-    sidx = 0;
-    subidx = 0;
-    tidx = 0;
+    int i;
+    int last;
 
-    // loop s string
-    while (s[sidx] != '\0')
+    if ((sp * 2) > MAXVAL)
     {
-        //printf("%d %c\n", sidx, s[sidx]);
-
-        // loop substring and compare against t
-        while (s[subidx] == t[tidx] && t[tidx] != '\0')
-        {
-            //found a match
-            //printf("here %d %d\n", subidx, tidx);
-            tidx++;
-            subidx++;
-        }
-
-        // check substring result
-        if (t[tidx] == '\0' && tidx > 0)
-        {
-            // substring is a match and reached the last char in t. (better implementation would be to check that tidx == number of chars in t)
-            //printf("got here %d %d\n", sidx, tidx);
-            return sidx;
-        }
-        else
-        {
-            // did not match all chars in t. reset index
-            tidx = 0;
-        }
-
-        // no match - go to next char in s
-        sidx++;
-        subidx = sidx;
+        // duplicating exceed stack size
+        printf("error: stack full, can't duplicate\n");
     }
-
-    // fail - reached end of s w/o a match
-    if (s[sidx] == '\0')
+    else
     {
-        return -1;
+        // OK to duplicate
+        last = sp;
+        /* loop to existing last index, add values offset by 1 */
+        for (i = 0; i < last; i++)
+        {
+            val[sp++] = val[i];
+        }
     }
-
-    return 0;
-
 }
 
+/*
+ * swap: swap the top 2 elements of stack
+ *
+ * Algorithm
+ * 1. ensure that there are at least 2 items, otherwise error
+ * 2. pop 2 items and save to temp variable
+ * 3. push items back in but in reverse order
+ */
+void swap(void)
+{
+    double t1;
+    double t2;
+    //requires 2 elements in stack
+    if (sp > 1)
+    {
+        //swap
+        t1 = pop();
+        t2 = pop();
+        push(t1);
+        push(t2);
+    }
+    else
+    {
+        printf("error: stack contains only 1 element\n");
+    }
+}
+/* push: push f onto value stack */
+void push (double f)
+{
+    if (sp < MAXVAL)
+        val[sp++] = f;
+    else
+        printf("error: stack full, can't push %g\n", f);
+}
 
+/* pop: pop and return top value from stack */
+double pop(void)
+{
+    if (sp > 0)
+        return val[--sp];
+    else {
+        printf("error: stack empty\n");
+        return 0.0;
+    }
+}
 
+/* getop: get next character or numeric operand */
+int getop(char s[])
+{
+    int i, c;
+    while ((s[0] = c = getch()) == ' ' || c == '\t')
+        ;
+    s[1] = '\0';
+    if (!isdigit(c) && c != '.')
+        return c; /* not a number */
+    i = 0;
+    if (isdigit(c)) /* collect integer part */
+        while (isdigit(s[++i] = c = getch()))
+            ;
+    if (c == '.') /* collect fraction part */
+        while (isdigit(s[++i] = c = getch()))
+            ;
+    s[i] = '\0';
+    if (c != EOF)
+        ungetch(c);
+    return NUMBER;
+}
 
+int getch(void) /* get a (possibly pushed-back) character */
+{
+    return (bufp > 0) ? buf[--bufp] : getchar();
+}
 
-
-
+void ungetch(int c) /* push character back on input */
+{
+    if (bufp >= BUFSIZE)
+        printf("ungetch: too many characters\n");
+    else
+        buf[bufp++] = c;
+}
