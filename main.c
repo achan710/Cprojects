@@ -22,14 +22,16 @@ note: to set tabs in vim
 #include <stdlib.h> /*for atof() */
 #include "assert.h"
 #include <ctype.h>
+#include <math.h>   /* for fmod(x, y) */
 
 // Preprocessor Constants
+#define REV 1 //code revision indicator
+
 #define TRUE 1
 #define FALSE 0
 
 #define EX4_1 FALSE
 #define EX4_3 TRUE
-
 
 // Problem Constants
 #if (EX4_3 == TRUE)
@@ -61,6 +63,7 @@ int bufp = 0; /* next free position in buf */
 
 int main(void)
 {
+    printf("Test %d starting...", REV);
 #if (EX4_1 == TRUE)
     // code to test my strindex
     int result;
@@ -78,7 +81,13 @@ int main(void)
 #endif
 
 #if (EX4_3 == TRUE)
-polish_calc();
+
+    /*
+     * Test cases
+     * 6 5 %  --> 1
+     * 51 50 % --> 1
+     */
+    polish_calc();
 #endif
 
 	// No errors encountered
@@ -203,6 +212,10 @@ int polish_calc()
                     push(pop() / op2);
                 else
                     printf("error: zero divisor\n");
+                break;
+            case '%':
+                op2 = pop();    /* added mod functionality */
+                push(fmod(pop(), op2));
                 break;
             case '\n':
                 printf("\t%.8g\n", pop());
