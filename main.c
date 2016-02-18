@@ -72,25 +72,26 @@ int main(void)
     printf("Test %d starting...\n", REV);
 
     // test print
+    // test print - prints 50 and 100
     push(50.0);
     push(100);
     print();
 
 
-    // test swap with exactly 2 items
+    // test swap with exactly 2 items - prints 100 50
     printf("test swap 1\n");
     swap();
     print();
 
 
-    // test swap with more than 2 items - only top 2 items should swap
+    // test swap with more than 2 items - only top 2 items should swap (eg 50, 25)
     printf("test swap 2\n");
     push(25);
     swap();
     print();
 
 
-    // test duplicate - should repeat the values in stack
+    // test duplicate - should repeat the values in stack (e.g. 100 25 50 100 25 50)
     printf("dup\n");
     duplicate();
     print();
